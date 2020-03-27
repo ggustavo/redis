@@ -48,6 +48,40 @@ void updateLFU(robj *val) {
     counter = LFULogIncr(counter);
     val->lru = (LFUGetTimeInMinutes()<<8) | counter;
 }
+//----------------------------------------------------------------------------- by me
+
+void handle_obj(robj * key, robj * val, char * command){
+    if(!key)return;
+    fprintf(stderr, "\n[%s] KEY type[%s] encoding[%s] -> ", command, getObjectTypeName(key), strEncoding(key->encoding)  );    
+    
+     if (sdsEncodedObject(key) ){
+         int size = sdslen(key->ptr);
+         //fprintf(stderr, "%d", size);
+         for(int i = 0; i < size; i ++){
+             fprintf(stderr, "%c", ((char*)key->ptr)[i]);
+         }
+     }else{
+         fprintf(stderr, "%d",(long)val->ptr);
+     }
+
+    if(val){
+        fprintf(stderr, " VAL type[%s] encoding[%s] -> ", getObjectTypeName(val), strEncoding(val->encoding)  );    
+
+    if (sdsEncodedObject(val) ){
+         int size = sdslen(val->ptr);
+         //fprintf(stderr, "%d", size);
+         for(int i = 0; i < size; i ++){
+             fprintf(stderr, "%c", ((char*)val->ptr)[i]);
+         }
+     }else{
+        fprintf(stderr, "%d",(long)val->ptr);
+     }
+
+    }
+
+
+}
+//-----------------------------------------------------------------------------
 
 /* Low level key lookup API, not actually called directly from commands
  * implementations that should instead rely on lookupKeyRead(),
@@ -163,12 +197,14 @@ robj *lookupKeyWrite(redisDb *db, robj *key) {
 robj *lookupKeyReadOrReply(client *c, robj *key, robj *reply) {
     robj *o = lookupKeyRead(c->db, key);
     if (!o) addReply(c,reply);
+    handle_obj(key, o,"lookupKeyReadOrReply");
     return o;
 }
 
 robj *lookupKeyWriteOrReply(client *c, robj *key, robj *reply) {
     robj *o = lookupKeyWrite(c->db, key);
     if (!o) addReply(c,reply);
+    handle_obj(key, o,"lookupKeyWriteOrReply");
     return o;
 }
 
@@ -177,9 +213,9 @@ robj *lookupKeyWriteOrReply(client *c, robj *key, robj *reply) {
  *
  * The program is aborted if the key already exists. */
 void dbAdd(redisDb *db, robj *key, robj *val) {
+    handle_obj(key, val,"dbAdd");
     sds copy = sdsdup(key->ptr);
     int retval = dictAdd(db->dict, copy, val);
-
     serverAssertWithInfo(NULL,key,retval == DICT_OK);
     if (val->type == OBJ_LIST ||
         val->type == OBJ_ZSET)
@@ -193,6 +229,7 @@ void dbAdd(redisDb *db, robj *key, robj *val) {
  *
  * The program is aborted if the key was not already present. */
 void dbOverwrite(redisDb *db, robj *key, robj *val) {
+    handle_obj(key, val,"dbOverwrite");
     dictEntry *de = dictFind(db->dict,key->ptr);
 
     serverAssertWithInfo(NULL,key,de != NULL);
@@ -283,6 +320,7 @@ robj *dbRandomKey(redisDb *db) {
 
 /* Delete a key, value, and associated expiration entry if any, from the DB */
 int dbSyncDelete(redisDb *db, robj *key) {
+    handle_obj(key, NULL,"dbSyncDelete");
     /* Deleting an entry from the expires dict will not free the sds of
      * the key, because it is shared with the main dictionary. */
     if (dictSize(db->expires) > 0) dictDelete(db->expires,key->ptr);
@@ -297,6 +335,7 @@ int dbSyncDelete(redisDb *db, robj *key) {
 /* This is a wrapper whose behavior depends on the Redis lazy free
  * configuration. Deletes the key synchronously or asynchronously. */
 int dbDelete(redisDb *db, robj *key) {
+    handle_obj(key, NULL,"del");
     return server.lazyfree_lazy_server_del ? dbAsyncDelete(db,key) :
                                              dbSyncDelete(db,key);
 }
