@@ -2163,6 +2163,7 @@ uint64_t redisBuildId(void);
 char *redisBuildIdString(void);
 
 /* Commands prototypes */
+void instant(client *c);
 void authCommand(client *c);
 void pingCommand(client *c);
 void echoCommand(client *c);

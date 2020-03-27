@@ -179,7 +179,23 @@ volatile unsigned long lru_clock; /* Server global current LRU time. */
  *    TYPE, EXPIRE*, PEXPIRE*, TTL, PTTL, ...
  */
 
+void instant(client *c) {
+    serverLog(LL_NOTICE, "\n\n%s\n\n",c->argv[1]->ptr);
+    
+    redisDb * db = server.db;
+    robj * key = createObject(OBJ_STRING,sdsnew("db_key"));
+    robj * val = createObject(OBJ_STRING,sdsnew("VALOOOOOOR"));
+    dbAdd(db, key, val);
+
+
+    addReply(c,shared.ok); /* Reply something to the client. */
+}
+
 struct redisCommand redisCommandTable[] = {
+    {"instant",instant,2,
+    "ok-loading write use-memory @string",
+    0,NULL,0,0,0,0,0},
+    
     {"module",moduleCommand,-2,
      "admin no-script",
      0,NULL,0,0,0,0,0,0},
@@ -5068,10 +5084,12 @@ int main(int argc, char **argv) {
                 exit(1);
             }
         }
+        
         if (server.ipfd_count > 0 || server.tlsfd_count > 0)
             serverLog(LL_NOTICE,"Ready to accept connections");
         if (server.sofd > 0)
             serverLog(LL_NOTICE,"The server is now ready to accept connections at %s", server.unixsocket);
+        
         if (server.supervised_mode == SUPERVISED_SYSTEMD) {
             if (!server.masterhost) {
                 redisCommunicateSystemd("STATUS=Ready to accept connections\n");
