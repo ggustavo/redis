@@ -53,7 +53,7 @@ void updateLFU(robj *val) {
 void handle_obj(robj * key, robj * val, char * command){
     if(!key)return;
     //serverLog(LL_NOTICE,
-    fprintf(stderr, "\n[%s] KEY type[%s] encoding[%s] -> ", command, getObjectTypeName(key), strEncoding(key->encoding)  );    
+     fprintf(stderr,  "\n[%s] KEY type[%s] encoding[%s] -> ", command, getObjectTypeName(key), strEncoding(key->encoding)  );    
     
      if (sdsEncodedObject(key) ){
          int size = sdslen(key->ptr);
@@ -62,7 +62,7 @@ void handle_obj(robj * key, robj * val, char * command){
              fprintf(stderr, "%c", ((char*)key->ptr)[i]);
          }
      }else{
-         fprintf(stderr, "%d",(long)val->ptr);
+         fprintf(stderr, "%ld",(long)val->ptr);
      }
 
     if(val){
@@ -75,11 +75,11 @@ void handle_obj(robj * key, robj * val, char * command){
              fprintf(stderr, "%c", ((char*)val->ptr)[i]);
          }
      }else{
-        fprintf(stderr, "%d",(long)val->ptr);
+        fprintf(stderr, "%ld",(long)val->ptr);
      }
 
     }
-
+    fprintf(stderr, "\n");
 
 }
 //-----------------------------------------------------------------------------

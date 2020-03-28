@@ -1154,6 +1154,7 @@ struct redisServer {
     int daemonize;                  /* True if running as a daemon */
     clientBufferLimitsConfig client_obuf_limits[CLIENT_TYPE_OBUF_COUNT];
     /* AOF persistence */
+    int aof_in_instant_recovery_process; /* indicates if the system is in a instant recovery process*/
     int aof_enabled;                /* AOF configuration */
     int aof_state;                  /* AOF_(ON|OFF|WAIT_REWRITE) */
     int aof_fsync;                  /* Kind of fsync() policy */
@@ -2163,7 +2164,7 @@ uint64_t redisBuildId(void);
 char *redisBuildIdString(void);
 
 /* Commands prototypes */
-void instant(client *c);
+void instant_recovery_start(client *c);
 void authCommand(client *c);
 void pingCommand(client *c);
 void echoCommand(client *c);
@@ -2397,5 +2398,10 @@ int tlsConfigure(redisTLSContextConfig *ctx_config);
     printf("-- MARK %s:%d --\n", __FILE__, __LINE__)
 
 int iAmMaster(void);
+
+
+/* INSTANT RECOVERY stuff */
+void instant_recovery_free_command(struct client *c);
+int instant_recovery_read_command(client *c, FILE * fp, long offset);
 
 #endif
