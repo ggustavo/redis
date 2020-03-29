@@ -15,6 +15,7 @@ char * BUFFER;
 
 int DEBUG_CYCLE = 0;
 
+
 int run_cycle(int file, size_t file_size){
     
      int interactions = (file_size - LAST_END_FILE) / CHUNK_SIZE;

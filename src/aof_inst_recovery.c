@@ -107,12 +107,12 @@ void instant_recovery_start(client *c){
     long offset = 23;
 
     // START RECOVERY COMMANDS HERE ------------------------------------
-    if(instant_recovery_read_command(c,fp,offset) == C_OK){
-        c->cmd->proc(c); //EXEC COMMAND!!
-        instant_recovery_free_command(c);
-    }else{
-        instant_recovery_free_command(c);
-    }
+    //if(instant_recovery_read_command(c,fp,offset) == C_OK){
+    //    c->cmd->proc(c); //EXEC COMMAND!!
+    //    instant_recovery_free_command(c);
+    //}else{
+    //    instant_recovery_free_command(c);
+    //}
     fclose(fp);
     // FINISH RECOVERY
 
