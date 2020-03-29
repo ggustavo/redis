@@ -1,11 +1,94 @@
 #include "server.h"
+#include "lmdb.h"
 
 
 #define INST_RECOVERY_STARTED 1
 #define INST_RECOVERY_DONE    0
 
-void instant_recovery_start(client *c){
+int E(int rc){
+    if(rc != 0) 
+    fprintf(stderr, "\n mdb_txn_commit: (%d) %s\n", rc, mdb_strerror(rc));
+    return rc;
+}
+
+MDB_env* mdb_create_env(){
+	MDB_env *env;
+	E(mdb_env_create(&env));
+    E(mdb_env_open(env, "data", 0, 0664));
+    return env;
+}
+
+MDB_dbi mdb_create_dbi(MDB_env *env){
+    MDB_dbi dbi;
+    MDB_txn *txn;
+    E(mdb_txn_begin(env, NULL, 0, &txn));
+    E(mdb_dbi_open(txn, NULL, 0, &dbi));
+    E(mdb_txn_commit(txn));
+    return dbi;
+}
+
+
+void mdb_exec(MDB_env *env, MDB_dbi dbi, void * key_val,  void * data_val, int key_size, int data_size){
+    MDB_val key;
+	key.mv_size = key_size;
+	key.mv_data = key_val;
+	
+    MDB_val data;
+    data.mv_size = data_size;
+	data.mv_data = data_val;
     
+    MDB_txn *txn;
+    E(mdb_txn_begin(env, NULL, 0, &txn));
+    E(mdb_put(txn, dbi, &key, &data, 0));
+    E(mdb_txn_commit(txn));
+} 
+
+char * int_to_char(int number) {
+    char * data = malloc(4);
+	data[3] = (number >> 24) & 0xFF;
+	data[2] = (number >> 16) & 0xFF;
+	data[1] = (number >> 8)  & 0xFF;
+	data[0] = (number)       & 0xFF;
+    return data;
+}
+int char_to_int(char * data) {
+	char buffer[4];
+	buffer[3] = data[3];
+	buffer[2] = data[2];
+	buffer[1] = data[1];
+	buffer[0] = data[0];
+	return *(int*) buffer;
+}
+
+
+void mdb_all(MDB_env *env, MDB_dbi dbi){
+    MDB_cursor *cursor;
+	MDB_val key, data;
+    MDB_txn *txn;
+    E(mdb_txn_begin(env, NULL, MDB_RDONLY, &txn));
+    E(mdb_cursor_open(txn, dbi, &cursor));
+	
+    while ( mdb_cursor_get(cursor, &key, &data, MDB_NEXT) == 0) {
+        printf("\nKey: %d Value: %d", char_to_int(key.mv_data), char_to_int(data.mv_data));
+	}
+	mdb_cursor_close(cursor);
+	//mdb_txn_abort(txn); //??
+    E(mdb_txn_commit(txn));
+}
+
+void instant_recovery_start(client *c){
+
+    MDB_env *env = mdb_create_env();
+    MDB_dbi dbi  = mdb_create_dbi(env);
+    
+    char * key = NULL;
+    for(int i = 0; i < 10; i++){
+        key = int_to_char(i);
+        mdb_exec(env, dbi, key, int_to_char(i*i), 4, 4);
+        free(key);
+    }
+    mdb_all(env, dbi);
+
     server.aof_in_instant_recovery_process = INST_RECOVERY_STARTED;
 
     if(c->id == CLIENT_ID_AOF){

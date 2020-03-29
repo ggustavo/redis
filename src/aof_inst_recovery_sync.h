@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+
 // ---------------------------- Functions Definitions ----------------------------
 #define IS_LINE_BREAK(value) ( (value == '\r' || value == '\n')  ? 1 : 0)
 #define MIN(a,b) (((a)<(b))?(a):(b))
