@@ -33,6 +33,7 @@ ifneq ($(shell sh -c '[ -f .make-ldflags ] && cat .make-ldflags || echo none'), 
 endif
 
 distclean:
+	-(cd liblmdb && $(MAKE) clean) > /dev/null || true
 	-(cd hiredis && $(MAKE) clean) > /dev/null || true
 	-(cd linenoise && $(MAKE) clean) > /dev/null || true
 	-(cd lua && $(MAKE) clean) > /dev/null || true
@@ -40,6 +41,13 @@ distclean:
 	-(rm -f .make-*)
 
 .PHONY: distclean
+
+liblmdb: .make-prerequisites
+	@printf '%b %b\n' $(MAKECOLOR)MAKE$(ENDCOLOR) $(BINCOLOR)$@$(ENDCOLOR)
+	cd liblmdb && $(MAKE) 
+
+.PHONY: liblmdb
+
 
 ifeq ($(BUILD_TLS),yes)
     HIREDIS_MAKE_FLAGS = USE_SSL=1

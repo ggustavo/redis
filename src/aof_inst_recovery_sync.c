@@ -12,6 +12,69 @@
 
 
 
+int DEBUG_CYCLE = 0;
+
+size_t run_cycle(int file, size_t file_size, char * BUFFER, size_t CHUNK_SIZE, size_t LAST_END_FILE, void (*receiver)(struct Command*)){
+    
+    if(file_size == 0 || LAST_END_FILE == file_size - 1) return file_size;
+    
+    if(file_size - LAST_END_FILE < CHUNK_SIZE){
+        CHUNK_SIZE = file_size - LAST_END_FILE;
+    }
+    
+    int interactions = (file_size - LAST_END_FILE) / CHUNK_SIZE;
+    
+    if(interactions == 0){
+       printf("\nERROR: interactions == 0");
+    }
+    
+    if(DEBUG_CYCLE) printf("\n\n----------------- Running Cycle (fd:%d) -------------------", file);
+    if(DEBUG_CYCLE) printf("\n AOF_FILE_CURRENT_SIZE:  %ld bytes", file_size);
+    if(DEBUG_CYCLE) printf("\n LAST_END_FILE:          %ld bytes", LAST_END_FILE);
+    if(DEBUG_CYCLE) printf("\n CHUNK_SIZE:             %ld bytes", CHUNK_SIZE);
+    if(DEBUG_CYCLE) printf("\n NUMBER_OF_INTERACTIONS: %d",       interactions);
+  
+    size_t seek = 0;
+    size_t bytes_read = 0;
+    size_t current_offset = 0;
+
+    for (int i = 0; i < interactions; i++) {    
+        seek = lseek(file, LAST_END_FILE, SEEK_SET);
+        ASSERT_FILE(seek);
+        
+        bytes_read = read(file, BUFFER, CHUNK_SIZE);
+        ASSERT_FILE(bytes_read);
+        if(bytes_read != CHUNK_SIZE){
+            printf("\nERROR: failed to read a chuck-block %ld/%ld", bytes_read, CHUNK_SIZE);
+            exit(EXIT_FAILURE);
+        }
+        
+        //print_raw_chunk();
+        current_offset = LAST_END_FILE;
+
+        while(1){ // While we can parse commands
+
+            struct Command * command = parserAOFCommand(CHUNK_SIZE, BUFFER, current_offset - LAST_END_FILE);
+            if(command != NULL){
+                command->log_offset_start = current_offset;
+                command->log_offset_end = current_offset + command->size - 1; 
+                current_offset  = current_offset + command->size; // Next OFFSET!
+               // print_aov_command(command);
+               // printf("\n");
+               // fflush(stdout);
+                receiver(command);
+            }else{
+                LAST_END_FILE = current_offset;
+                if(DEBUG_CYCLE) printf("\nERROR: Failed to parse the last command. Opening a new chunk from the byte %ld", LAST_END_FILE);
+                break;
+            }
+
+        }
+    }   
+    return LAST_END_FILE;
+}
+
+
 
 
 struct Command * parserAOFCommand(size_t CHUNK_SIZE, char * BUFFER, size_t offset){
@@ -111,6 +174,9 @@ struct Command * parserAOFCommand(size_t CHUNK_SIZE, char * BUFFER, size_t offse
     return NULL;
 }
 
+
+
+
 void free_tokens(char ** tokens, int* tokens_size, int number_of_sentences){
     if(tokens != NULL){
         for(int index = 0; index < number_of_sentences; index++){
@@ -191,71 +257,3 @@ size_t ASSERT_FILE(size_t value){
     }
     return value;
 }
-
-
-
-int DEBUG_CYCLE = 0;
-
-size_t run_cycle(int file, size_t file_size, char * BUFFER, size_t CHUNK_SIZE, size_t LAST_END_FILE, void (*receiver)(struct Command*)){
-    
-    if(file_size == 0 || LAST_END_FILE == file_size - 1) return file_size;
-    
-    if(file_size - LAST_END_FILE < CHUNK_SIZE){
-        CHUNK_SIZE = file_size - LAST_END_FILE;
-    }
-    
-    int interactions = (file_size - LAST_END_FILE) / CHUNK_SIZE;
-    
-    if(interactions == 0){
-       printf("\nERROR: interactions == 0");
-    }
-    
-    if(DEBUG_CYCLE) printf("\n\n----------------- Running Cycle (fd:%d) -------------------", file);
-    if(DEBUG_CYCLE) printf("\n AOF_FILE_CURRENT_SIZE:  %ld bytes", file_size);
-    if(DEBUG_CYCLE) printf("\n LAST_END_FILE:          %ld bytes", LAST_END_FILE);
-    if(DEBUG_CYCLE) printf("\n CHUNK_SIZE:             %ld bytes", CHUNK_SIZE);
-    if(DEBUG_CYCLE) printf("\n NUMBER_OF_INTERACTIONS: %d",       interactions);
-  
-    size_t seek = 0;
-    size_t bytes_read = 0;
-    size_t current_offset = 0;
-
-    for (int i = 0; i < interactions; i++) {    
-        seek = lseek(file, LAST_END_FILE, SEEK_SET);
-        ASSERT_FILE(seek);
-        
-        bytes_read = read(file, BUFFER, CHUNK_SIZE);
-        ASSERT_FILE(bytes_read);
-        if(bytes_read != CHUNK_SIZE){
-            printf("\nERROR: failed to read a chuck-block %ld/%ld", bytes_read, CHUNK_SIZE);
-            exit(EXIT_FAILURE);
-        }
-        
-        //print_raw_chunk();
-        current_offset = LAST_END_FILE;
-
-        while(1){ // While we can parse commands
-
-            struct Command * command = parserAOFCommand(CHUNK_SIZE, BUFFER, current_offset - LAST_END_FILE);
-            if(command != NULL){
-                command->log_offset_start = current_offset;
-                command->log_offset_end = current_offset + command->size - 1; 
-                current_offset  = current_offset + command->size; // Next OFFSET!
-               // print_aov_command(command);
-               // printf("\n");
-               // fflush(stdout);
-                receiver(command);
-            }else{
-                LAST_END_FILE = current_offset;
-                if(DEBUG_CYCLE) printf("\nERROR: Failed to parse the last command. Opening a new chunk from the byte %ld", LAST_END_FILE);
-                break;
-            }
-
-        }
-    }   
-    return LAST_END_FILE;
-}
-
-
-
-

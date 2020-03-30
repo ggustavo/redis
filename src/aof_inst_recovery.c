@@ -15,7 +15,7 @@ void mdb_all(MDB_env *env, MDB_dbi dbi);
 //char * int_to_char(int number);
 //int char_to_int(char * data);
 // -----------------------------------------------------------------
-MDB_env *env;
+MDB_env *env = NULL;
 MDB_dbi dbi;
 
 
@@ -47,7 +47,7 @@ void receiver_command(struct Command * command){
 
 void instant_recovery_sync_index(){
     env = instant_recovery_create_env();
-    dbi  = instant_recovery_create_dbi(env);
+    dbi = instant_recovery_create_dbi(env);
     
     size_t LAST_END_FILE = 0;
     size_t CHUNK_SIZE = 100;
@@ -88,9 +88,9 @@ robj* instant_recovery_get_record(robj *key){
     MDB_val mb_val;
 
     MDB_txn *txn;
-    E(mdb_txn_begin(env, NULL, 0, &txn));
+    E(mdb_txn_begin(env, NULL, MDB_RDONLY, &txn));
     int rs = mdb_get(txn, dbi, &mb_key, &mb_val);
-    mdb_txn_abort(txn);  //E(mdb_txn_commit(txn)); ??
+    mdb_txn_abort(txn);
     
     if(rs == 0){ // KEY FIND!!! let's recovery!!!
         serverLog(LL_NOTICE, "Instant Recovery Key find");
@@ -107,22 +107,40 @@ robj* instant_recovery_get_record(robj *key){
 void instant_recovery_start(client *c){
 
     if(c->id == CLIENT_ID_AOF){
-        serverLog(LL_NOTICE, "[ERROR] Instant Recovery called from AOF Load");
+        serverLog(LL_NOTICE, "[ERROR] Instant Recovery called from AOF Load?");
         addReply(c, shared.ok);
         return;
     }
     server.aof_in_instant_recovery_process = INST_RECOVERY_STARTED;
-
-    
-    
+ 
     serverLog(LL_NOTICE, "Start Instant Recovery NOW !!");
     
     struct redisCommand * instant_cmd = c->cmd;
     robj **               instant_argv = c->argv;
     int                   instant_argc = c->argc;
 
+    if(env == NULL){
+        serverLog(LL_NOTICE, "[ERROR] Instant Recovery evn = NULL trying open again");
+        env = instant_recovery_create_env();
+        dbi = instant_recovery_create_dbi(env);
+    }
 
-    FILE *fp = fopen(server.aof_filename,"r");
+    MDB_cursor *cursor;
+	MDB_val key, data;
+    MDB_txn *txn;
+    E(mdb_txn_begin(env, NULL, MDB_RDONLY, &txn));
+    E(mdb_cursor_open(txn, dbi, &cursor));
+	
+    while ( mdb_cursor_get(cursor, &key, &data, MDB_NEXT) == 0) { //restore
+        //printf("\nKey: %s Value: %s ", key.mv_data, data.mv_data);
+        
+	}
+	mdb_cursor_close(cursor);
+	mdb_txn_abort(txn); //??
+
+
+
+    //FILE *fp = fopen(server.aof_filename,"r");
 
     // START RECOVERY COMMANDS HERE ------------------------------------
     //long offset = 23;
@@ -132,14 +150,15 @@ void instant_recovery_start(client *c){
     //}else{
     //    instant_recovery_free_command(c);
     //}
-    fclose(fp);
+    //fclose(fp);
     // FINISH RECOVERY
 
     
+
+
     c->argc = instant_argc;
     c->argv = instant_argv;
     c->cmd  = instant_cmd;
-
     //server.aof_in_instant_recovery_process = INST_RECOVERY_DONE;
     addReply(c, shared.ok);
 }
@@ -243,6 +262,7 @@ int E(int rc){
 MDB_env* instant_recovery_create_env(){
 	MDB_env *env;
 	E(mdb_env_create(&env));
+    E(system("mkdir -p data"));
     E(mdb_env_open(env, "data", 0, 0664));
     return env;
 }
