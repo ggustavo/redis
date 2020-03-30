@@ -97,7 +97,7 @@ robj* instant_recovery_get_record(robj *key){
         robj *val = createStringObject(mb_val.mv_data, mb_val.mv_size);
         return val;
 
-    }else if(rs == MDB_NOTFOUND){ // It' ok! this is a new key
+    }else if(rs == MDB_NOTFOUND){ // It's ok! this is a new key
         return NULL;
     }
     serverLog(LL_NOTICE, "[ERROR] Instant Recovery MDB get record");
