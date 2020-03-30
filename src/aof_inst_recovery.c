@@ -288,7 +288,6 @@ void mdb_all(MDB_env *env, MDB_dbi dbi){
 	mdb_txn_abort(txn); //??
     //E(mdb_txn_commit(txn));
 }
-/*
 
 void instant_recovery_mdb_exec(MDB_env *env, MDB_dbi dbi, void * key_val,  void * data_val, int key_size, int data_size){
     MDB_val key;
@@ -304,4 +303,3 @@ void instant_recovery_mdb_exec(MDB_env *env, MDB_dbi dbi, void * key_val,  void 
     E(mdb_put(txn, dbi, &key, &data, 0));
     E(mdb_txn_commit(txn));
 }
-*/
