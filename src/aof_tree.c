@@ -1,10 +1,6 @@
-#include "aof_inst_recovery_sync.h"
 
-#include <sys/file.h>  // To Open ?
-#include <sys/types.h> // To Read and Write
-#include <unistd.h>    // To Close
-#include <fcntl.h>     // To Open ?
-#include <unistd.h>    // To Sleep
+
+/*
 
 char * AOF_TREE_FILE_NAME = "aof.tree";
 int READ_INTERVAL = 10;    // seconds
@@ -18,7 +14,7 @@ int DEBUG_CYCLE = 0;
 
 int run_cycle(int file, size_t file_size){
     
-     int interactions = (file_size - LAST_END_FILE) / CHUNK_SIZE;
+    int interactions = (file_size - LAST_END_FILE) / CHUNK_SIZE;
     
     if(DEBUG_CYCLE) printf("\n\n----------------- Running Cycle (fd:%d) -------------------", file);
     if(DEBUG_CYCLE) printf("\n AOF_FILE_CURRENT_SIZE:  %ld bytes", file_size);
@@ -122,4 +118,17 @@ int main(int argc, char **argv){
     }
 
     return EXIT_SUCCESS;
+}
+
+*/
+
+int main(int argc, char **argv){
+    char * AOF_FILE_NAME;
+    if(argc > 1){
+        AOF_FILE_NAME = argv[1];
+    }else{
+        AOF_FILE_NAME = "appendonly.aof";
+    }
+    AOF_FILE_NAME = AOF_FILE_NAME;
+    return 1;
 }

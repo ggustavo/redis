@@ -103,7 +103,21 @@ robj *lookupKey(redisDb *db, robj *key, int flags) {
             }
         }
         return val;
-    } else {
+    } else { //INSTANT RECOVERY!
+
+        if(server.aof_in_instant_recovery_process == INST_RECOVERY_STARTED){
+            
+            robj *inst_val = instant_recovery_get_record(key);
+            if(inst_val){
+                dbAdd(db, key, inst_val);
+                dictEntry *inst_de = dictFind(db->dict,key->ptr);
+                if(inst_de){
+                    return inst_val;
+                }
+                fprintf(stderr, "\n=== ERROR ===\n");
+            }
+        }
+    
         return NULL;
     }
 }

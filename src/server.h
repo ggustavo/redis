@@ -2401,7 +2401,49 @@ int iAmMaster(void);
 
 
 /* INSTANT RECOVERY stuff */
+#define INST_RECOVERY_STARTED 1
+#define INST_RECOVERY_DONE    0
+void instant_recovery_sync_index();
 void instant_recovery_free_command(struct client *c);
 int instant_recovery_read_command(client *c, FILE * fp, long offset);
+robj* instant_recovery_get_record(robj *key);
+
+
+struct Command{
+    size_t log_offset_start;
+    size_t log_offset_end;
+    int size;
+    int number_of_tokens;
+    char ** tokens;
+    int * tokens_size;
+};
+
+
+
+// ---------------------------- SYNC Functions Definitions ----------------------------
+#define IS_LINE_BREAK(value) ( (value == '\r' || value == '\n')  ? 1 : 0)
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MAX(a,b) (((a)>(b))?(a):(b))
+struct Command * parserAOFCommand(size_t CHUNK_SIZE, char * BUFFER, size_t offset);
+int read_positive_int(size_t CHUNK_SIZE, char * BUFFER, size_t * offset);
+char * read_string(size_t CHUNK_SIZE, char * BUFFER, size_t * i, int size);
+void print_aov_command(struct Command * command);
+void free_tokens(char ** tokens, int* tokens_size, int number_of_sentences);
+void print_raw_chunk(size_t CHUNK_SIZE, char * BUFFER);
+void print_parse_error(size_t CHUNK_SIZE, char * BUFFER, size_t offset);
+size_t ASSERT_FILE(size_t value);
+size_t run_cycle(int file, size_t file_size, char * BUFFER, size_t CHUNK_SIZE, size_t LAST_END_FILE, void (*receiver)(struct Command*));
+  
+// -------------------------------------------------------------------------------
+
+// State Machine for analyzing log commands
+#define STATE_ERROR  0 // START STATE
+#define     STATE_1  1
+#define     STATE_2  2
+#define     STATE_3  3
+#define     STATE_4  4
+#define     STATE_5  5
+#define     STATE_6  6 // FINAL STATE
+
 
 #endif
