@@ -4770,12 +4770,12 @@ int checkForSentinelMode(int argc, char **argv) {
 void loadDataFromDisk(void) {
     long long start = ustime();
     if (server.aof_state == AOF_ON) {
-      //  if (loadAppendOnlyFile(server.aof_filename) == C_OK){
-     //      serverLog(LL_NOTICE,"DB loaded from append only file: %.3f seconds",(float)(ustime()-start)/1000000);
-      //  }
-        serverLog(LL_NOTICE,"AOF recovery is disable... start sync instant recovery index");
-        instant_recovery_sync_index();
-        serverLog(LL_NOTICE,"Sync Index Finish: %.3f seconds",(float)(ustime()-start)/1000000);
+        if (loadAppendOnlyFile(server.aof_filename) == C_OK){
+             serverLog(LL_NOTICE,"DB loaded from append only file: %.3f seconds",(float)(ustime()-start)/1000000);
+        }
+        //serverLog(LL_NOTICE,"AOF recovery is disable... start sync instant recovery index");
+        //instant_recovery_sync_index();
+        //serverLog(LL_NOTICE,"Sync Index Finish: %.3f seconds",(float)(ustime()-start)/1000000);
 
     } else {
         rdbSaveInfo rsi = RDB_SAVE_INFO_INIT;

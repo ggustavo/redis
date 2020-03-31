@@ -18,11 +18,11 @@ size_t run_cycle(int file, size_t file_size, char * BUFFER, size_t CHUNK_SIZE, s
     
     if(file_size == 0 || LAST_END_FILE == file_size - 1) return file_size;
     
-    if(file_size - LAST_END_FILE < CHUNK_SIZE){
-        CHUNK_SIZE = file_size - LAST_END_FILE;
-    }
+    //if(file_size - LAST_END_FILE < CHUNK_SIZE){
+    //    CHUNK_SIZE = file_size - LAST_END_FILE;
+    //}
     
-    int interactions = (file_size - LAST_END_FILE) / CHUNK_SIZE;
+    int interactions = MAX(1, (file_size - LAST_END_FILE) / CHUNK_SIZE);
     
     if(interactions == 0){
        printf("\nERROR: interactions == 0");
@@ -45,8 +45,9 @@ size_t run_cycle(int file, size_t file_size, char * BUFFER, size_t CHUNK_SIZE, s
         bytes_read = read(file, BUFFER, CHUNK_SIZE);
         ASSERT_FILE(bytes_read);
         if(bytes_read != CHUNK_SIZE){
-            printf("\nERROR: failed to read a chuck-block %ld/%ld", bytes_read, CHUNK_SIZE);
-            exit(EXIT_FAILURE);
+            CHUNK_SIZE = bytes_read;
+            //printf("\nERROR: failed to read a chuck-block %ld/%ld", bytes_read, CHUNK_SIZE);
+            //exit(EXIT_FAILURE);
         }
         
         //print_raw_chunk();
@@ -98,7 +99,7 @@ struct Command * parser_AOF_command(size_t CHUNK_SIZE, char * BUFFER, size_t off
         if(current_state == STATE_1){
             current_state = BUFFER[i] == '*' ? STATE_2 : STATE_ERROR;
             
-          // printf("\nState 1: BUFFER[%d]: %c", i, BUFFER[i] );
+            if(DEBUG_CYCLE) printf("\nState 1: BUFFER[%d]: %c", i, BUFFER[i] );
         }else
 
         if(current_state == STATE_2){  
@@ -116,20 +117,20 @@ struct Command * parser_AOF_command(size_t CHUNK_SIZE, char * BUFFER, size_t off
                 current_state = STATE_ERROR;
             }
 
-           // printf("\nState 2: BUFFER[%d]: %c -> number_of_sentences: %d ", i, BUFFER[i], number_of_sentences );
+           if(DEBUG_CYCLE) printf("\nState 2: BUFFER[%d]: %c -> number_of_sentences: %d ", i, BUFFER[i], number_of_sentences );
         }else
 
         if(current_state == STATE_3){
             current_state = BUFFER[i] == '$' ? STATE_4 : STATE_ERROR;
             
-           // printf("\nState 3: BUFFER[%d]: %c", i, BUFFER[i] );
+           if(DEBUG_CYCLE) printf("\nState 3: BUFFER[%d]: %c", i, BUFFER[i] );
         }else
 
         if(current_state == STATE_4){
             current_sentence_size = read_positive_int(CHUNK_SIZE, BUFFER, &i);
             current_state = current_sentence_size > 0 ? STATE_5 : STATE_ERROR;
             
-           // printf("\nState 4: BUFFER[%d]: %c -> current_sentence_size: %d ", i, BUFFER[i], current_sentence_size );
+           if(DEBUG_CYCLE) printf("\nState 4: BUFFER[%d]: %c -> current_sentence_size: %d ", i, BUFFER[i], current_sentence_size );
         }else
 
         if(current_state == STATE_5){
@@ -145,7 +146,7 @@ struct Command * parser_AOF_command(size_t CHUNK_SIZE, char * BUFFER, size_t off
                 current_state = STATE_ERROR;
             }
 
-           // printf("\nState 5: BUFFER[%d]: %c -> current_sentence: %s ", i, BUFFER[i], current_sentence );
+           if(DEBUG_CYCLE) printf("\nState 5: BUFFER[%d]: %c -> current_sentence: %s ", i, BUFFER[i], current_sentence );
         }else
 
         if(current_state == STATE_6){
@@ -162,11 +163,11 @@ struct Command * parser_AOF_command(size_t CHUNK_SIZE, char * BUFFER, size_t off
             }
             current_state = BUFFER[i] == '$' ? STATE_4 : STATE_ERROR;
 
-           // printf("\nState 6: BUFFER[%d]: %c -> %d sentences remain ", i, BUFFER[i], number_of_sentences - current_sentence_index );
+           if(DEBUG_CYCLE) printf("\nState 6: BUFFER[%d]: %c -> %d sentences remain ", i, BUFFER[i], number_of_sentences - current_sentence_index );
         }else
 
         if(current_state == STATE_ERROR){
-            print_parse_error(CHUNK_SIZE, BUFFER, i);
+             if(DEBUG_CYCLE) print_parse_error(CHUNK_SIZE, BUFFER, i);
             break;
         }
 
@@ -196,7 +197,10 @@ void free_tokens(char ** tokens, int* tokens_size, int number_of_sentences){
 }
 
 char * read_string(size_t CHUNK_SIZE, char * BUFFER, size_t * i, int size){
-    if(*i + size >= CHUNK_SIZE) return NULL;
+    if(*i + size >= CHUNK_SIZE){
+        if(DEBUG_CYCLE) printf("\n read_string %ld + %d >= %ld", *i, size, CHUNK_SIZE);
+        return NULL;
+    } 
     char * string = (char*) zmalloc(sizeof(size + 1));
     string[size] = '\0';
     
@@ -232,6 +236,7 @@ void print_parse_error(size_t CHUNK_SIZE, char * BUFFER, size_t offset){
     }
     printf("...\n");
     //exit(EXIT_FAILURE);
+    //DEBUG_CYCLE = 1;
 }
 
 void print_raw_chunk(size_t CHUNK_SIZE, char * BUFFER){

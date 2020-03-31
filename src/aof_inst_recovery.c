@@ -19,6 +19,7 @@ int E(int rc);
 MDB_env* instant_recovery_create_env();
 MDB_dbi instant_recovery_create_dbi(MDB_env *env);
 int isValidCommand(char * token, int size){
+    UNUSED(token);
     if( size <= 4) return 1;
     return 0;
 }
@@ -28,8 +29,9 @@ int isValidCommand(char * token, int size){
 MDB_env *env = NULL;
 MDB_dbi dbi;
 MDB_txn * sync_transaction;
-size_t CHUNK_SIZE = 100;
+size_t CHUNK_SIZE = 15100;
 pthread_t ptid; 
+long restored_commadns = 0;
 
 void receiver_command(struct Command * command){
     
@@ -54,6 +56,7 @@ void receiver_command(struct Command * command){
         val.mv_data = page;
         val.mv_size = page_size;
         E(mdb_put(sync_transaction, dbi, &key, &val, 0));
+        restored_commadns ++;
         sdsfree(page);
     }
     free_tokens(command->tokens, command->tokens_size, command->number_of_tokens);
@@ -85,7 +88,7 @@ void instant_recovery_sync_index(){
 
 
         E(mdb_txn_begin(env, NULL, 0, &sync_transaction));
-        
+        int t = 0;
         do{
             LAST_END_FILE = run_cycle(
                             file, 
@@ -93,12 +96,14 @@ void instant_recovery_sync_index(){
                             BUFFER, 
                             CHUNK_SIZE, 
                             LAST_END_FILE, 
-                            receiver_command); // Read log file    
+                            receiver_command); // Read log file  
+                            //t++; if(t==2)
+                            //break;
         } while(LAST_END_FILE < file_size-1);
         
         E(mdb_txn_commit(sync_transaction));
         zfree(BUFFER);
-        
+        serverLog(LL_NOTICE,"instant recovery restore %d commands", restored_commadns);
         //close(file);
     }
    
@@ -208,17 +213,17 @@ void instant_recovery_start(client *c){
     c->argc = instant_argc;
     c->argv = instant_argv;
     c->cmd  = instant_cmd;
-    //c->replstate = replstate;
+    c->replstate = replstate;
     server.aof_in_instant_recovery_process = INST_RECOVERY_DONE;
     addReply(c, shared.ok);
     pthread_create(&ptid, NULL, &instant_recovery_cycle_thread, NULL);
 }
 
-
 void instant_recovery_cycle_thread(void* arg){
+    UNUSED(arg);
     pthread_detach(pthread_self()); 
 
-    serverLog(LL_NOTICE,"instant recovery cycle_thread LastSize: %d (started)", server.aof_current_size);
+    serverLog(LL_NOTICE,"instant recovery cycle_thread last Size: %ld (started)", server.aof_current_size);
   
     char * BUFFER = (char*) zmalloc(CHUNK_SIZE);
     int file;
@@ -250,7 +255,7 @@ void instant_recovery_cycle_thread(void* arg){
         }
         close(file);
         sleep(10);
-        serverLog(LL_NOTICE,"instant recovery cycle_thread LastSize: %ld", server.aof_current_size);
+        serverLog(LL_NOTICE,"instant recovery cycle_thread last size: %ld", server.aof_current_size);
     }
     zfree(BUFFER);
     pthread_exit(NULL); 

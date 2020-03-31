@@ -52,6 +52,7 @@ void updateLFU(robj *val) {
 
 void handle_obj(robj * key, robj * val, char * command){
     if(!key)return;
+    if(1)return;
     //serverLog(LL_NOTICE,
      fprintf(stderr,  "\n[%s] KEY type[%s] encoding[%s] -> ", command, getObjectTypeName(key), strEncoding(key->encoding)  );    
     
