@@ -182,7 +182,7 @@ volatile unsigned long lru_clock; /* Server global current LRU time. */
 struct redisCommand redisCommandTable[] = {
 
     {"instant",instant_recovery_start,-1,
-     "ok-stale write use-memory @connection",
+     "write use-memory @string",
      0,NULL,0,0,0,0,0,0},
 
     {"module",moduleCommand,-2,
@@ -4770,9 +4770,9 @@ int checkForSentinelMode(int argc, char **argv) {
 void loadDataFromDisk(void) {
     long long start = ustime();
     if (server.aof_state == AOF_ON) {
-       // if (loadAppendOnlyFile(server.aof_filename) == C_OK){
-       //     serverLog(LL_NOTICE,"DB loaded from append only file: %.3f seconds",(float)(ustime()-start)/1000000);
-       // }
+      //  if (loadAppendOnlyFile(server.aof_filename) == C_OK){
+     //      serverLog(LL_NOTICE,"DB loaded from append only file: %.3f seconds",(float)(ustime()-start)/1000000);
+      //  }
         serverLog(LL_NOTICE,"AOF recovery is disable... start sync instant recovery index");
         instant_recovery_sync_index();
         serverLog(LL_NOTICE,"Sync Index Finish: %.3f seconds",(float)(ustime()-start)/1000000);

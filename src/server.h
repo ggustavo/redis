@@ -2405,26 +2405,32 @@ int iAmMaster(void);
 #define INST_RECOVERY_DONE    0
 void instant_recovery_sync_index();
 void instant_recovery_free_command(struct client *c);
-int instant_recovery_read_command(client *c, FILE * fp, long offset);
-robj* instant_recovery_get_record(robj *key);
+robj* instant_recovery_get_record(redisDb *db, robj *key);
+void instant_recovery_set_redis_command(sds page, client *c);
+FILE * instant_recovery_special_start_AOF();
+void instant_recovery_special_stop_AOF(FILE * fp);
+void instant_recovery_cycle_thread(void* arg);
 
+struct client *createAOFClient(void); //FROM AOF
+void freeFakeClientArgv(struct client *c); //FROM AOF
+void freeFakeClient(struct client *c); //FROM AOF
 
 struct Command{
     size_t log_offset_start;
     size_t log_offset_end;
-    int size;
+    int log_size;
+
     int number_of_tokens;
     char ** tokens;
     int * tokens_size;
+    int tokens_total_size;
 };
-
-
 
 // ---------------------------- SYNC Functions Definitions ----------------------------
 #define IS_LINE_BREAK(value) ( (value == '\r' || value == '\n')  ? 1 : 0)
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
-struct Command * parserAOFCommand(size_t CHUNK_SIZE, char * BUFFER, size_t offset);
+struct Command * parser_AOF_command(size_t CHUNK_SIZE, char * BUFFER, size_t offset);
 int read_positive_int(size_t CHUNK_SIZE, char * BUFFER, size_t * offset);
 char * read_string(size_t CHUNK_SIZE, char * BUFFER, size_t * i, int size);
 void print_aov_command(struct Command * command);

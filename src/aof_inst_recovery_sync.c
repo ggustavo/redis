@@ -54,11 +54,11 @@ size_t run_cycle(int file, size_t file_size, char * BUFFER, size_t CHUNK_SIZE, s
 
         while(1){ // While we can parse commands
 
-            struct Command * command = parserAOFCommand(CHUNK_SIZE, BUFFER, current_offset - LAST_END_FILE);
+            struct Command * command = parser_AOF_command(CHUNK_SIZE, BUFFER, current_offset - LAST_END_FILE);
             if(command != NULL){
                 command->log_offset_start = current_offset;
-                command->log_offset_end = current_offset + command->size - 1; 
-                current_offset  = current_offset + command->size; // Next OFFSET!
+                command->log_offset_end = current_offset + command->log_size - 1; 
+                current_offset  = current_offset + command->log_size; // Next OFFSET!
                // print_aov_command(command);
                // printf("\n");
                // fflush(stdout);
@@ -77,11 +77,12 @@ size_t run_cycle(int file, size_t file_size, char * BUFFER, size_t CHUNK_SIZE, s
 
 
 
-struct Command * parserAOFCommand(size_t CHUNK_SIZE, char * BUFFER, size_t offset){
+struct Command * parser_AOF_command(size_t CHUNK_SIZE, char * BUFFER, size_t offset){
     int current_state = STATE_1;
     
     char ** tokens = NULL;
     int * tokens_size = NULL;
+    int tokens_total_size = 0;
 
     int number_of_sentences = 0;
     int current_sentence_index = 0;
@@ -108,7 +109,7 @@ struct Command * parserAOFCommand(size_t CHUNK_SIZE, char * BUFFER, size_t offse
                 
                 for(int h_t = 0; h_t < number_of_sentences; h_t++){
                     tokens[h_t] = NULL;
-                    tokens_size[h_t] = NULL;
+                    tokens_size[h_t] = 0;
                 }
                 current_state = STATE_3;
             }else{
@@ -136,6 +137,7 @@ struct Command * parserAOFCommand(size_t CHUNK_SIZE, char * BUFFER, size_t offse
             if(current_sentence != NULL){
                 tokens[current_sentence_index] = current_sentence;
                 tokens_size[current_sentence_index] = current_sentence_size;
+                tokens_total_size+=current_sentence_size;
                 current_sentence_index++;
                 //zfree(current_sentence); //<----- remove this, to use tokens
                 current_state = STATE_6;
@@ -152,7 +154,8 @@ struct Command * parserAOFCommand(size_t CHUNK_SIZE, char * BUFFER, size_t offse
                 command->number_of_tokens = number_of_sentences;
                 command->tokens = tokens;
                 command->tokens_size = tokens_size;
-                command->size = i - offset;
+                command->log_size = i - offset;
+                command->tokens_total_size = tokens_total_size;
                 command->log_offset_start = 0;
                 command->log_offset_end = 0;
                 return command; // FINAL STATE
@@ -247,7 +250,7 @@ void print_aov_command(struct Command * command){
             printf("%s (%d) ",command->tokens[i], command->tokens_size[i]);
         }
     }
-    printf("] size: %d, start: %ld, end: %ld", command->size, command->log_offset_start, command->log_offset_end);
+    printf("] tokens_size: %d log_size: %d, start: %ld, end: %ld", command->tokens_total_size, command->log_size, command->log_offset_start, command->log_offset_end);
     
 }
 
