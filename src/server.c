@@ -2715,6 +2715,7 @@ void initServer(void) {
 
     /* Initialization after setting defaults from the config system. */
     server.aof_state = server.aof_enabled ? AOF_ON : AOF_OFF;
+    server.aof_in_instant_recovery_process = C_ERR;
     server.hz = server.config_hz;
     server.pid = getpid();
     server.current_client = NULL;
@@ -4770,12 +4771,18 @@ int checkForSentinelMode(int argc, char **argv) {
 void loadDataFromDisk(void) {
     long long start = ustime();
     if (server.aof_state == AOF_ON) {
-        if (loadAppendOnlyFile(server.aof_filename) == C_OK){
-             serverLog(LL_NOTICE,"DB loaded from append only file: %.3f seconds",(float)(ustime()-start)/1000000);
+        
+        server.aof_instant_recovery_enable = C_OK;
+        
+        if(server.aof_instant_recovery_enable == C_OK){
+            serverLog(LL_NOTICE,"AOF recovery is disable... start sync instant recovery index");
+            instant_recovery_sync_index();
+            serverLog(LL_NOTICE,"Sync Index Finish: %.3f seconds",(float)(ustime()-start)/1000000);
         }
-        //serverLog(LL_NOTICE,"AOF recovery is disable... start sync instant recovery index");
-        //instant_recovery_sync_index();
-        //serverLog(LL_NOTICE,"Sync Index Finish: %.3f seconds",(float)(ustime()-start)/1000000);
+        //else
+        //if (loadAppendOnlyFile(server.aof_filename) == C_OK){
+        //    serverLog(LL_NOTICE,"DB loaded from append only file: %.3f seconds",(float)(ustime()-start)/1000000);
+        //}
 
     } else {
         rdbSaveInfo rsi = RDB_SAVE_INFO_INIT;

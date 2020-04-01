@@ -106,7 +106,7 @@ robj *lookupKey(redisDb *db, robj *key, int flags) {
         return val;
     }  
 
-    return instant_recovery_get_record(db, key);
+    return instant_recovery_restore_record_by_key(db, key);
     
 }
 

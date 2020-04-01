@@ -828,17 +828,22 @@ int loadAppendOnlyFile(char *filename) {
             exit(1);
         }
 
-        if (cmd == server.multiCommand) valid_before_multi = valid_up_to;
+        if(server.aof_instant_recovery_enable == C_OK){
+            instant_recovery_receiver_command(argv, argc);
+        }else{
+            if (cmd == server.multiCommand) valid_before_multi = valid_up_to;
 
-        /* Run the command in the context of a fake client */
-        fakeClient->cmd = cmd;
-        if (fakeClient->flags & CLIENT_MULTI &&
-            fakeClient->cmd->proc != execCommand)
-        {
-            queueMultiCommand(fakeClient);
-        } else {
-            cmd->proc(fakeClient);
+            /* Run the command in the context of a fake client */
+            fakeClient->cmd = cmd;
+            if (fakeClient->flags & CLIENT_MULTI &&
+                fakeClient->cmd->proc != execCommand)
+            {
+                queueMultiCommand(fakeClient);
+            } else {
+                cmd->proc(fakeClient);
+            }
         }
+        
 
         /* The fake client should not have a reply */
         serverAssert(fakeClient->bufpos == 0 &&
